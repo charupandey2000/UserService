@@ -4,6 +4,7 @@ import dev.charu.userservice.Dtos.*;
 import dev.charu.userservice.exceptions.UserAlreadyExistsException;
 import dev.charu.userservice.exceptions.UserDoesNotExistException;
 import dev.charu.userservice.model.sessionStatus;
+import dev.charu.userservice.services.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,6 +17,11 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+    AuthService authService;
+    public AuthController(AuthService authService){
+        this.authService=authService;
+    }
+
     @PostMapping("/login")
     public ResponseEntity<UserDto> login(@RequestBody LoginRequestDto request) throws UserDoesNotExistException {
         return null;
@@ -30,9 +36,9 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<UserDto> signUp(@RequestBody SignUpRequestDto request) throws UserAlreadyExistsException {
-        return null;
-        //UserDto userDto = authService.signUp(request.getEmail(), request.getPassword());
-        //return new ResponseEntity<>(userDto, HttpStatus.OK);
+        //return null;
+        UserDto userDto = authService.signUp(request.getEmail(), request.getPassword());
+        return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
 
     @PostMapping("/validate")
