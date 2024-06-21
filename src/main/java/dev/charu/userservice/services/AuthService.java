@@ -1,6 +1,10 @@
 package dev.charu.userservice.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.charu.userservice.Dtos.SendEmailDto;
 import dev.charu.userservice.Dtos.UserDto;
+import dev.charu.userservice.KafkaConfig.KafkaProducerClient;
 import dev.charu.userservice.exceptions.UserAlreadyExistsException;
 import dev.charu.userservice.exceptions.UserDoesNotExistException;
 import dev.charu.userservice.model.Session;
@@ -24,11 +28,15 @@ public class AuthService {
     private SessionRepository sessionRepository;
 
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private KafkaProducerClient kafkaProducerClient;
+    private ObjectMapper objectMapper;
 
-    public AuthService(UserRepository userRepository,SessionRepository sessionRepository) {
+    public AuthService(UserRepository userRepository,SessionRepository sessionRepository,KafkaProducerClient kafkaProducerClient,ObjectMapper objectMapper) {
           this.userRepository=userRepository;
           this.sessionRepository=sessionRepository;
           this.bCryptPasswordEncoder=new BCryptPasswordEncoder();
+          this.kafkaProducerClient=kafkaProducerClient;
+          this.objectMapper=objectMapper;
     }
 
     public ResponseEntity<UserDto> login(String email, String password) throws UserDoesNotExistException {
@@ -48,6 +56,7 @@ public class AuthService {
 
 
         String token = RandomStringUtils.randomAscii(20);
+        //String token= String.valueOf(System.currentTimeMillis());
         MultiValueMapAdapter<String, String > headers = new MultiValueMapAdapter<>(new HashMap<>());
         headers.add("AUTH_TOKEN", token);
 
@@ -84,7 +93,7 @@ public class AuthService {
         return ResponseEntity.ok().build();
     }
 
-    public UserDto signUp(String email, String password) throws UserAlreadyExistsException {
+    public UserDto signUp(String email, String password) throws UserAlreadyExistsException, JsonProcessingException {
 
         Optional<User> userOptional = userRepository.findByEmail(email);
 
@@ -97,8 +106,15 @@ public class AuthService {
         user.setPassword(bCryptPasswordEncoder.encode(password));
 
         User savedUser = userRepository.save(user);
+        SendEmailDto sendEmailDto=new SendEmailDto();
+        sendEmailDto.setTo(email);
+        sendEmailDto.setFrom("charupandey2");
+        sendEmailDto.setBody("welcome to scaler");
+        sendEmailDto.setSubject("hello Thanks for joining");
 
+        kafkaProducerClient.sendEvent("sendEmail",objectMapper.writeValueAsString(sendEmailDto));
         return UserDto.from(savedUser);
+
     }
 
     public Optional<UserDto> validate(String token, Long userId) {

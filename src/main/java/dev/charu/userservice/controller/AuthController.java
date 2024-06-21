@@ -1,6 +1,9 @@
 package dev.charu.userservice.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.charu.userservice.Dtos.*;
+import dev.charu.userservice.KafkaConfig.KafkaProducerClient;
 import dev.charu.userservice.exceptions.UserAlreadyExistsException;
 import dev.charu.userservice.exceptions.UserDoesNotExistException;
 import dev.charu.userservice.model.sessionStatus;
@@ -17,15 +20,17 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-    AuthService authService;
+    private AuthService authService;
+
     public AuthController(AuthService authService){
         this.authService=authService;
+
     }
 
     @PostMapping("/login")
     public ResponseEntity<UserDto> login(@RequestBody LoginRequestDto request) throws UserDoesNotExistException {
-        return null;
-        //return authService.login(request.getEmail(), request.getPassword());
+
+        return authService.login(request.getEmail(), request.getPassword());
     }
 
     @PostMapping("/logout")
@@ -35,28 +40,33 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<UserDto> signUp(@RequestBody SignUpRequestDto request) throws UserAlreadyExistsException {
+    public ResponseEntity<UserDto> signUp(@RequestBody SignUpRequestDto request) throws UserAlreadyExistsException, JsonProcessingException {
         //return null;
         UserDto userDto = authService.signUp(request.getEmail(), request.getPassword());
         return new ResponseEntity<>(userDto, HttpStatus.OK);
+
+
     }
 
     @PostMapping("/validate")
     public ResponseEntity<ValidatetokenResponseDto> validateToken(@RequestBody ValidateTokenRequestDto request) {
-//        Optional<UserDto> userDto = authService.validate(request.getToken(), request.getUserId());
-//
-//        if (userDto.isEmpty()) {
-//            ValidatetokenResponseDto response = new ValidatetokenResponseDto();
-//            response.setSessionStatus(sessionStatus.INVALID);
-//            return new ResponseEntity<>(response, HttpStatus.OK);
-//        }
-//
-//        ValidatetokenResponseDto response = new ValidatetokenResponseDto();
-//        response.setSessionStatus(sessionStatus.ACTIVE);
-//        response.setUserDto(userDto.get());
-//        return new ResponseEntity<>(response, HttpStatus.OK);
-        return null;
+        Optional<UserDto> userDto = authService.validate(request.getToken(), request.getUserId());
+//        UserDto userDto1=userDto.get();
+//        System.out.println("char");
+        if (userDto.isEmpty()) {
+            ValidatetokenResponseDto response = new ValidatetokenResponseDto();
+            response.setSessionStatus(sessionStatus.INVALID);
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        ValidatetokenResponseDto response = new ValidatetokenResponseDto();
+        response.setSessionStatus(sessionStatus.ACTIVE);
+        response.setUserDto(userDto.get());
+        return new ResponseEntity<>(response, HttpStatus.OK);
+
     }
+
+
 
 
 }
